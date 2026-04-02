@@ -13,6 +13,7 @@
             --border-color: #333;
             --accent-color: #4CAF50;
             --danger-color: #d32f2f;
+            --modal-bg: #222;
         }
 
         body {
@@ -29,41 +30,23 @@
 
         #controls {
             display: flex;
-            flex-wrap: wrap;
             justify-content: center;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        #settings {
-            display: flex;
-            gap: 15px;
-            background: #222;
-            padding: 8px 15px;
-            border-radius: 20px;
-            margin-bottom: 15px;
-            font-size: 12px;
-            border: 1px solid #333;
-        }
-
-        .toggle-label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
+            gap: 10px;
+            margin: 15px 0;
         }
 
         button {
             background-color: var(--accent-color);
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 10px 16px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
         }
 
+        /* Grid Styling */
         #grid-wrapper {
             background-color: var(--bg-color);
             padding: 10px;
@@ -118,14 +101,10 @@
             cursor: pointer;
         }
 
-        .grid-cell img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
+        .grid-cell img { width: 100%; height: 100%; object-fit: cover; }
         .grid-cell span { font-size: 14px; color: #444; }
 
+        /* Modals */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -139,111 +118,140 @@
         .hidden { display: none !important; }
 
         .modal-content {
-            background: #222;
-            padding: 15px;
-            border-radius: 8px;
+            background: var(--modal-bg);
+            padding: 20px;
+            border-radius: 12px;
             width: 90%;
-            max-width: 400px;
+            max-width: 450px;
+            max-height: 85vh;
+            overflow-y: auto;
         }
 
-        .search-row { display: flex; gap: 5px; margin-bottom: 10px; }
-
-        #search-input {
-            flex: 1;
-            padding: 10px;
-            background: #111;
-            color: white;
-            border: 1px solid #444;
+        .settings-section { margin-bottom: 20px; }
+        .settings-section h3 { font-size: 14px; margin-bottom: 10px; color: var(--accent-color); border-bottom: 1px solid #444; }
+        
+        .toggle-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
         }
 
-        /* --- FIX START: Miniature Result Previews --- */
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* Search Results */
         #search-results {
             display: grid;
-            /* Changed from huge columns to small, miniature-sized columns */
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
-            gap: 8px; /* Slightly tighter gap for miniature look */
-            max-height: 50vh;
-            overflow-y: auto;
-            padding: 5px; /* Add internal padding */
-            box-sizing: border-box; /* Maintain total width */
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
         }
 
-        .result-card img {
-            width: 100%; /* Makes the image fill the 80px result-card div */
-            border-radius: 4%; /* Keep nice rounded corner */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3); /* Subtle depth */
-            cursor: pointer; /* Visually confirm it's clickable */
-            transition: transform 0.1s ease-in-out; /* Subtle hover effect */
-        }
+        .result-card img { width: 100%; border-radius: 4%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); cursor: pointer; }
 
-        .result-card img:hover {
-            transform: scale(1.05); /* Grow slightly on hover */
-        }
-        /* --- FIX END: Miniature Result Previews --- */
-
+        #search-input { width: 100%; padding: 12px; background: #111; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <h1 style="font-size: 1.2rem; margin: 10px 0;">MTG Grid Builder</h1>
-
-    <div id="settings">
-        <label class="toggle-label">
-            <input type="checkbox" id="toggle-extra-colors" onchange="render()"> Multi/Colorless
-        </label>
-        <label class="toggle-label">
-            <input type="checkbox" id="toggle-extra-types" onchange="render()"> Kindred/Battle
-        </label>
-    </div>
+    <h1 style="font-size: 1.4rem; margin: 15px 0;">MTG Grid Builder</h1>
 
     <div id="controls">
-        <button id="btn-download">Download Image</button>
-        <button id="btn-clear" style="background: var(--danger-color)">Reset All</button>
+        <button onclick="openSettings()" style="background: #444;">Settings</button>
+        <button id="btn-download">Download</button>
+        <button id="btn-clear" style="background: var(--danger-color)">Reset</button>
     </div>
 
     <div id="grid-wrapper">
         <div id="grid-container"></div>
     </div>
 
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 style="margin-top:0">Grid Settings</h2>
+            
+            <div class="settings-section">
+                <h3>Colors</h3>
+                <div id="color-toggles" class="toggle-group"></div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Card Types</h3>
+                <div id="type-toggles" class="toggle-group"></div>
+            </div>
+
+            <button onclick="closeSettings()" style="width:100%; padding:12px;">Save & Close</button>
+        </div>
+    </div>
+
     <div id="search-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <div class="search-row">
-                <input type="text" id="search-input" placeholder="Search card...">
-                <button id="btn-search">Search</button>
-            </div>
+            <input type="text" id="search-input" placeholder="Search card name...">
             <div id="search-results"></div>
-            <button onclick="closeSearch()" style="margin-top:10px; width:100%; background:#444; color:white; border:none; padding:10px;">Close</button>
+            <button onclick="closeSearch()" style="margin-top:15px; width:100%; background:#444; color:white;">Cancel</button>
         </div>
     </div>
 
     <script>
-        const baseColors = ['White', 'Blue', 'Black', 'Red', 'Green'];
-        const extraColors = ['Multi', 'Colorless'];
+        const allColors = ['White', 'Blue', 'Black', 'Red', 'Green', 'Multi', 'Colorless'];
+        const allTypes = ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land', 'Kindred', 'Battle'];
         
-        const baseTypes = ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
-        const extraTypes = ['Kindred', 'Battle'];
+        // Load settings or defaults
+        let activeColors = JSON.parse(localStorage.getItem('grid_colors')) || ['White', 'Blue', 'Black', 'Red', 'Green'];
+        let activeTypes = JSON.parse(localStorage.getItem('grid_types')) || ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
         
         let selections = JSON.parse(localStorage.getItem('mtg_fav_grid')) || {};
         let currentTarget = null;
 
+        // Initialize Settings Toggles
+        function initSettings() {
+            const colorDiv = document.getElementById('color-toggles');
+            const typeDiv = document.getElementById('type-toggles');
+
+            allColors.forEach(c => {
+                colorDiv.innerHTML += `
+                    <label class="toggle-label">
+                        <input type="checkbox" value="${c}" ${activeColors.includes(c) ? 'checked' : ''} onchange="updateFilters()"> ${c}
+                    </label>`;
+            });
+
+            allTypes.forEach(t => {
+                typeDiv.innerHTML += `
+                    <label class="toggle-label">
+                        <input type="checkbox" value="${t}" ${activeTypes.includes(t) ? 'checked' : ''} onchange="updateFilters()"> ${t}
+                    </label>`;
+            });
+        }
+
+        function updateFilters() {
+            activeColors = Array.from(document.querySelectorAll('#color-toggles input:checked')).map(i => i.value);
+            activeTypes = Array.from(document.querySelectorAll('#type-toggles input:checked')).map(i => i.value);
+            localStorage.setItem('grid_colors', JSON.stringify(activeColors));
+            localStorage.setItem('grid_types', JSON.stringify(activeTypes));
+            render();
+        }
+
         function render() {
             const grid = document.getElementById('grid-container');
             grid.innerHTML = '';
-
-            const activeColors = [...baseColors];
-            if(document.getElementById('toggle-extra-colors').checked) activeColors.push(...extraColors);
-            
-            const activeTypes = [...baseTypes];
-            if(document.getElementById('toggle-extra-types').checked) activeTypes.push(...extraTypes);
-
             grid.style.gridTemplateColumns = `30px repeat(${activeColors.length}, 1fr)`;
 
-            grid.appendChild(document.createElement('div'));
+            if (activeColors.length === 0) {
+                grid.innerHTML = '<div style="grid-column: span 10; text-align:center; padding:20px;">Select at least one color in Settings.</div>';
+                return;
+            }
+
+            grid.appendChild(document.createElement('div')); // Corner
 
             activeColors.forEach(c => {
                 const div = document.createElement('div');
                 div.className = 'grid-header';
-                div.textContent = c.substring(0, 5); 
+                div.textContent = c.substring(0, 5);
                 grid.appendChild(div);
             });
 
@@ -272,35 +280,29 @@
             });
         }
 
-        function openSearch(key) {
-            currentTarget = key;
-            document.getElementById('search-modal').classList.remove('hidden');
-            document.getElementById('search-input').focus();
-        }
+        // Modal Handlers
+        function openSettings() { document.getElementById('settings-modal').classList.remove('hidden'); }
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+        function openSearch(key) { currentTarget = key; document.getElementById('search-modal').classList.remove('hidden'); document.getElementById('search-input').focus(); }
+        function closeSearch() { document.getElementById('search-modal').classList.add('hidden'); document.getElementById('search-results').innerHTML = ''; document.getElementById('search-input').value = ''; }
 
-        function closeSearch() {
-            document.getElementById('search-modal').classList.add('hidden');
-            document.getElementById('search-results').innerHTML = '';
-            document.getElementById('search-input').value = '';
-        }
-
-        document.getElementById('btn-search').onclick = performSearch;
-        document.getElementById('search-input').onkeydown = (e) => { if(e.key==='Enter') performSearch(); };
+        // Search Logic
+        document.getElementById('search-input').oninput = debounce(performSearch, 500);
 
         async function performSearch() {
             const q = document.getElementById('search-input').value;
-            if(!q) return;
+            if (q.length < 3) return;
             const resContainer = document.getElementById('search-results');
-            resContainer.innerHTML = 'Searching...';
-
+            resContainer.innerHTML = '...';
             try {
                 const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
                 const data = await res.json();
                 resContainer.innerHTML = '';
-                
-                data.data?.forEach(card => {
+                data.data?.slice(0, 15).forEach(card => {
                     const url = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
-                    if(url) {
+                    if (url) {
+                        const div = document.createElement('div');
+                        div.className = 'result-card';
                         const img = document.createElement('img');
                         img.src = url;
                         img.onclick = () => {
@@ -310,34 +312,40 @@
                             render();
                             closeSearch();
                         };
-                        const div = document.createElement('div');
-                        div.className = 'result-card';
                         div.appendChild(img);
                         resContainer.appendChild(div);
                     }
                 });
-            } catch(e) { resContainer.innerHTML = 'Error'; }
+            } catch (e) { resContainer.innerHTML = 'Error'; }
+        }
+
+        // Utils
+        function debounce(func, timeout = 300) {
+            let timer;
+            return (...args) => { clearTimeout(timer); timer = setTimeout(() => { func.apply(this, args); }, timeout); };
         }
 
         document.getElementById('btn-download').onclick = () => {
             const el = document.getElementById('grid-wrapper');
             html2canvas(el, { useCORS: true, scale: 3, backgroundColor: "#121212" }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'mtg-grid.png';
+                link.download = 'mtg-favorites.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
         };
 
         document.getElementById('btn-clear').onclick = () => {
-            if(confirm("Wipe all cards?")) { 
+            if(confirm("Wipe all card selections? (Settings will be kept)")) { 
                 selections = {}; 
                 localStorage.removeItem('mtg_fav_grid'); 
                 render(); 
             }
         };
 
+        initSettings();
         render();
     </script>
 </body>
 </html>
+
