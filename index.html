@@ -20,11 +20,8 @@
             font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            margin: 0;
-            padding: 5px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin: 0; padding: 5px;
+            display: flex; flex-direction: column; align-items: center;
             overflow-x: hidden;
         }
 
@@ -32,82 +29,49 @@
 
         button {
             background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
+            color: white; border: none; padding: 10px 16px;
+            border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;
         }
 
         #grid-wrapper {
-            background-color: var(--bg-color);
-            padding: 10px;
-            width: 98vw;
-            max-width: 900px;
-            box-sizing: border-box;
+            background-color: var(--bg-color); padding: 10px;
+            width: 98vw; max-width: 900px; box-sizing: border-box;
         }
 
         #grid-container { display: grid; gap: 3px; }
 
         .grid-header {
-            font-weight: bold;
-            text-align: center;
-            font-size: 9px;
-            text-transform: uppercase;
-            color: #aaa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-weight: bold; text-align: center; font-size: 9px;
+            text-transform: uppercase; color: #aaa;
+            display: flex; align-items: center; justify-content: center;
         }
 
         .row-header { display: flex; align-items: center; justify-content: center; width: 30px; }
         .row-header span {
-            display: block;
-            transform: rotate(-90deg);
-            white-space: nowrap;
-            font-size: 7px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #aaa;
+            display: block; transform: rotate(-90deg); white-space: nowrap;
+            font-size: 7px; font-weight: bold; text-transform: uppercase; color: #aaa;
         }
 
         .grid-cell {
-            background-color: var(--cell-bg);
-            border: 1px dashed var(--border-color);
-            aspect-ratio: 63 / 88;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4%;
-            overflow: hidden;
-            cursor: pointer;
+            background-color: var(--cell-bg); border: 1px dashed var(--border-color);
+            aspect-ratio: 63 / 88; width: 100%;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4%; overflow: hidden; cursor: pointer;
         }
 
         .grid-cell img { width: 100%; height: 100%; object-fit: cover; }
 
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
         }
 
         .hidden { display: none !important; }
 
         .modal-content {
-            background: var(--modal-bg);
-            padding: 20px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 450px;
-            max-height: 85vh;
-            overflow-y: auto;
+            background: var(--modal-bg); padding: 20px; border-radius: 12px;
+            width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto;
         }
 
         .settings-section { margin-bottom: 20px; }
@@ -120,15 +84,12 @@
         #search-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
 
         .result-card { display: flex; flex-direction: column; gap: 5px; }
+        .dfc-container { display: flex; gap: 4px; }
         .result-card img { width: 100%; border-radius: 4.75%; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         
         .btn-arts { 
-            background: #444; 
-            font-size: 10px; 
-            padding: 4px; 
-            border-radius: 3px; 
-            width: 100%;
-            text-align: center;
+            background: #444; font-size: 10px; padding: 4px; 
+            border-radius: 3px; width: 100%; text-align: center; margin-top: 2px;
         }
 
         #search-input { flex: 1; padding: 12px; background: #111; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; }
@@ -262,6 +223,39 @@
         document.getElementById('btn-modal-search').onclick = performSearch;
         document.getElementById('search-input').onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
 
+        function createCardElement(card, showArtsBtn = true) {
+            const div = document.createElement('div');
+            div.className = 'result-card';
+            
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'dfc-container';
+
+            // Check for DFC
+            const faces = card.card_faces && card.image_uris ? [card] : (card.card_faces || [card]);
+            
+            faces.forEach(face => {
+                const url = face.image_uris?.normal;
+                if (url) {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.onclick = () => selectImage(url);
+                    imgContainer.appendChild(img);
+                }
+            });
+
+            div.appendChild(imgContainer);
+
+            if (showArtsBtn) {
+                const btnArts = document.createElement('button');
+                btnArts.className = 'btn-arts';
+                btnArts.textContent = 'Other Arts';
+                btnArts.onclick = (e) => { e.stopPropagation(); showAllArts(card.name); };
+                div.appendChild(btnArts);
+            }
+
+            return div;
+        }
+
         async function performSearch() {
             const q = document.getElementById('search-input').value;
             if (q.length < 2) return;
@@ -274,24 +268,7 @@
                 if (!data.data) { resContainer.innerHTML = 'No cards found.'; return; }
                 
                 data.data.slice(0, 20).forEach(card => {
-                    const url = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
-                    if (url) {
-                        const div = document.createElement('div');
-                        div.className = 'result-card';
-                        
-                        const img = document.createElement('img');
-                        img.src = url;
-                        img.onclick = () => selectImage(url);
-                        
-                        const btnArts = document.createElement('button');
-                        btnArts.className = 'btn-arts';
-                        btnArts.textContent = 'Other Arts';
-                        btnArts.onclick = (e) => { e.stopPropagation(); showAllArts(card.name); };
-                        
-                        div.appendChild(img);
-                        div.appendChild(btnArts);
-                        resContainer.appendChild(div);
-                    }
+                    resContainer.appendChild(createCardElement(card, true));
                 });
             } catch (e) { resContainer.innerHTML = 'Error searching.'; }
         }
@@ -306,16 +283,7 @@
                 const data = await res.json();
                 resContainer.innerHTML = '';
                 data.data.forEach(card => {
-                    const url = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
-                    if (url) {
-                        const img = document.createElement('img');
-                        img.src = url;
-                        img.onclick = () => selectImage(url);
-                        const div = document.createElement('div');
-                        div.className = 'result-card';
-                        div.appendChild(img);
-                        resContainer.appendChild(div);
-                    }
+                    resContainer.appendChild(createCardElement(card, false));
                 });
             } catch (e) { resContainer.innerHTML = 'Error loading arts.'; }
         }
