@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MTG Favorite Card Grid</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -16,7 +16,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -43,7 +43,10 @@
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
+            transition: opacity 0.2s;
         }
+
+        button:hover { opacity: 0.8; }
 
         #grid-wrapper {
             background-color: var(--bg-color);
@@ -54,7 +57,6 @@
         #grid-container {
             display: grid;
             gap: 8px;
-            align-items: center;
         }
 
         .grid-header {
@@ -64,23 +66,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .row-header {
             width: 40px;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .row-header span {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
+            display: block;
+            transform: rotate(-90deg);
             white-space: nowrap;
-            font-size: 14px;
-            line-height: 1;
-            transform: rotate(180deg);
-            display: inline-block;
+            font-size: 12px;
+            font-weight: bold;
+            width: 0;
+            text-transform: uppercase;
         }
 
         .grid-cell {
@@ -93,30 +98,22 @@
             justify-content: center;
             border-radius: 4.75%;
             overflow: hidden;
-            position: relative;
+            cursor: pointer;
+            transition: border-color 0.2s;
         }
+
+        .grid-cell:hover { border-color: var(--accent-color); }
 
         .grid-cell img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
-        }
-
-        .grid-cell .plus {
-            color: #333;
-            font-size: 28px;
-            line-height: 1;
-            user-select: none;
         }
 
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -131,6 +128,7 @@
             border-radius: 8px;
             width: 90%;
             max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         .search-row {
@@ -146,30 +144,35 @@
             background: #111;
             color: white;
             border: 1px solid #444;
+            border-radius: 4px;
         }
 
         #search-results {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
+            padding: 5px;
         }
 
         .result-card img {
             width: 100%;
             border-radius: 4.75%;
             cursor: pointer;
-            display: block;
+            transition: transform 0.1s;
         }
+
+        .result-card img:hover { transform: scale(1.05); }
     </style>
 </head>
 <body>
+
     <h1>MTG Grid Builder</h1>
 
     <div id="controls">
         <button id="btn-download">Download Image</button>
-        <button id="btn-clear" style="background: var(--danger-color)">Reset</button>
+        <button id="btn-clear" style="background: var(--danger-color)">Reset Grid</button>
     </div>
 
     <div id="grid-wrapper">
@@ -179,11 +182,11 @@
     <div id="search-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="search-row">
-                <input type="text" id="search-input" placeholder="Card name..." />
+                <input type="text" id="search-input" placeholder="Search card name...">
                 <button id="btn-search">Search</button>
             </div>
             <div id="search-results"></div>
-            <button onclick="closeSearch()" style="margin-top:10px; width:100%; background:#444">Close</button>
+            <button onclick="closeSearch()" style="margin-top:15px; width:100%; background:#444">Cancel</button>
         </div>
     </div>
 
@@ -193,34 +196,15 @@
         let selections = JSON.parse(localStorage.getItem('mtg_fav_grid')) || {};
         let currentTarget = null;
 
-        function getCardImageUrl(card) {
-            return card.image_uris?.png ||
-                   card.image_uris?.large ||
-                   card.image_uris?.normal ||
-                   card.card_faces?.[0]?.image_uris?.png ||
-                   card.card_faces?.[0]?.image_uris?.large ||
-                   card.card_faces?.[0]?.image_uris?.normal ||
-                   null;
-        }
-
-        function waitForImages(container) {
-            const imgs = [...container.querySelectorAll('img')];
-            return Promise.all(imgs.map(img => {
-                if (img.complete) return Promise.resolve();
-                return new Promise(resolve => {
-                    img.onload = resolve;
-                    img.onerror = resolve;
-                });
-            }));
-        }
-
         function render() {
             const grid = document.getElementById('grid-container');
             grid.innerHTML = '';
             grid.style.gridTemplateColumns = `40px repeat(${colors.length}, 100px)`;
 
+            // Empty Corner
             grid.appendChild(document.createElement('div'));
 
+            // Column Headers (Colors)
             colors.forEach(c => {
                 const div = document.createElement('div');
                 div.className = 'grid-header';
@@ -228,6 +212,7 @@
                 grid.appendChild(div);
             });
 
+            // Rows (Types)
             types.forEach(t => {
                 const rh = document.createElement('div');
                 rh.className = 'row-header';
@@ -239,17 +224,16 @@
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
                     cell.onclick = () => openSearch(key);
-
+                    
                     if (selections[key]) {
                         const img = document.createElement('img');
-                        img.crossOrigin = 'anonymous';
-                        img.referrerPolicy = 'no-referrer';
+                        // CRITICAL: Set crossOrigin BEFORE src for GitHub Pages/CORS compatibility
+                        img.crossOrigin = "anonymous";
                         img.src = selections[key];
                         cell.appendChild(img);
                     } else {
-                        cell.innerHTML = '<span class="plus">+</span>';
+                        cell.innerHTML = '<span style="color:#444; font-size: 24px;">+</span>';
                     }
-
                     grid.appendChild(cell);
                 });
             });
@@ -258,67 +242,79 @@
         function openSearch(key) {
             currentTarget = key;
             document.getElementById('search-modal').classList.remove('hidden');
+            document.getElementById('search-input').focus();
         }
 
         function closeSearch() {
             document.getElementById('search-modal').classList.add('hidden');
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-input').value = '';
         }
 
-        document.getElementById('btn-search').onclick = async () => {
-            const q = document.getElementById('search-input').value.trim();
-            if (!q) return;
+        // Trigger search on button click
+        document.getElementById('btn-search').onclick = performSearch;
 
-            const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`, {
-                cache: 'no-store'
-            });
-            const data = await res.json();
-            const results = document.getElementById('search-results');
-            results.innerHTML = '';
-
-            (data.data || []).forEach(card => {
-                const url = getCardImageUrl(card);
-                if (url) {
-                    const img = document.createElement('img');
-                    img.src = url;
-                    img.onload = () => {
-                        const div = document.createElement('div');
-                        div.className = 'result-card';
-                        div.appendChild(img);
-                        img.onclick = () => {
-                            selections[currentTarget] = url;
-                            localStorage.setItem('mtg_fav_grid', JSON.stringify(selections));
-                            render();
-                            closeSearch();
-                        };
-                        results.appendChild(div);
-                    };
-                    img.onerror = () => {};
-                }
-            });
+        // Trigger search on 'Enter' key
+        document.getElementById('search-input').onkeydown = (e) => {
+            if (e.key === 'Enter') performSearch();
         };
 
-        document.getElementById('btn-download').onclick = async () => {
-            const el = document.getElementById('grid-wrapper');
-            await document.fonts.ready;
-            await waitForImages(el);
+        async function performSearch() {
+            const q = document.getElementById('search-input').value;
+            if (!q) return;
 
-            const canvas = await html2canvas(el, {
-                useCORS: true,
+            const resultsContainer = document.getElementById('search-results');
+            resultsContainer.innerHTML = 'Searching...';
+
+            try {
+                const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                resultsContainer.innerHTML = '';
+                
+                if (data.data) {
+                    data.data.forEach(card => {
+                        const url = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
+                        if (url) {
+                            const div = document.createElement('div');
+                            div.className = 'result-card';
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.onclick = () => {
+                                selections[currentTarget] = url;
+                                localStorage.setItem('mtg_fav_grid', JSON.stringify(selections));
+                                render();
+                                closeSearch();
+                            };
+                            div.appendChild(img);
+                            resultsContainer.appendChild(div);
+                        }
+                    });
+                } else {
+                    resultsContainer.innerHTML = 'No cards found.';
+                }
+            } catch (err) {
+                resultsContainer.innerHTML = 'Error fetching cards.';
+            }
+        }
+
+        document.getElementById('btn-download').onclick = () => {
+            const el = document.getElementById('grid-wrapper');
+            // html2canvas needs useCORS to be true for Scryfall images
+            html2canvas(el, { 
+                useCORS: true, 
                 allowTaint: false,
                 scale: 2,
-                backgroundColor: '#121212',
-                scrollX: 0,
-                scrollY: 0
+                backgroundColor: "#121212"
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'my-mtg-favorites.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
             });
-
-            const link = document.createElement('a');
-            link.download = 'mtg-grid.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
         };
 
         document.getElementById('btn-clear').onclick = () => {
-            if (confirm('Clear all?')) {
+            if(confirm("Are you sure you want to clear the entire grid?")) {
                 selections = {};
                 localStorage.removeItem('mtg_fav_grid');
                 render();
