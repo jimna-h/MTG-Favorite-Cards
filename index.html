@@ -35,21 +35,35 @@
 
         #grid-wrapper {
             background-color: var(--bg-color); padding: 10px;
-            width: 98vw; max-width: 900px; box-sizing: border-box;
+            width: 98vw; max-width: 1200px; box-sizing: border-box;
         }
 
-        #grid-container { display: grid; gap: 3px; }
+        #grid-container { display: grid; gap: 4px; }
 
+        /* HEADER SCALING: Uses clamp(min, preferred, max) for fluid sizing */
         .grid-header {
-            font-weight: bold; text-align: center; font-size: 9px;
-            text-transform: uppercase; color: #aaa;
+            font-weight: bold; 
+            text-align: center; 
+            font-size: clamp(8px, 1.5vw, 16px); /* Scales with screen width */
+            text-transform: uppercase; 
+            color: #aaa;
             display: flex; align-items: center; justify-content: center;
+            padding-bottom: 5px;
         }
 
-        .row-header { display: flex; align-items: center; justify-content: center; width: 30px; }
+        .row-header { 
+            display: flex; align-items: center; justify-content: center; 
+            width: clamp(30px, 4vw, 60px); /* Gutter grows on desktop */
+        }
+
         .row-header span {
-            display: block; transform: rotate(-90deg); white-space: nowrap;
-            font-size: 7px; font-weight: bold; text-transform: uppercase; color: #aaa;
+            display: block; 
+            transform: rotate(-90deg); 
+            white-space: nowrap;
+            font-size: clamp(7px, 1.2vw, 14px); /* Scales with screen width */
+            font-weight: bold; 
+            text-transform: uppercase; 
+            color: #aaa;
         }
 
         .grid-cell {
@@ -60,7 +74,9 @@
         }
 
         .grid-cell img { width: 100%; height: 100%; object-fit: cover; }
+        .grid-cell:hover { border-color: var(--accent-color); }
 
+        /* Modals */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.9); display: flex;
@@ -71,39 +87,39 @@
 
         .modal-content {
             background: var(--modal-bg); padding: 20px; border-radius: 12px;
-            width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto;
+            width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto;
         }
 
         .settings-section { margin-bottom: 20px; }
-        .settings-section h3 { font-size: 14px; margin-bottom: 10px; color: var(--accent-color); border-bottom: 1px solid #444; }
+        .settings-section h3 { font-size: 16px; margin-bottom: 10px; color: var(--accent-color); border-bottom: 1px solid #444; }
         
-        .toggle-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-        .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+        .toggle-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+        .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 
         .search-row { display: flex; gap: 8px; margin-bottom: 15px; }
-        #search-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+        #search-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
 
         .result-card { display: flex; flex-direction: column; gap: 5px; }
         .dfc-container { display: flex; gap: 4px; }
         .result-card img { width: 100%; border-radius: 4.75%; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         
         .btn-arts { 
-            background: #444; font-size: 10px; padding: 4px; 
+            background: #444; font-size: 11px; padding: 6px; 
             border-radius: 3px; width: 100%; text-align: center; margin-top: 2px;
         }
 
         #search-input { flex: 1; padding: 12px; background: #111; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; }
-        #search-breadcrumb { font-size: 12px; color: var(--accent-color); margin-bottom: 10px; cursor: pointer; display: none; }
+        #search-breadcrumb { font-size: 14px; color: var(--accent-color); margin-bottom: 15px; cursor: pointer; display: none; }
     </style>
 </head>
 <body>
 
-    <h1 style="font-size: 1.4rem; margin: 15px 0;">MTG Grid Builder</h1>
+    <h1 style="font-size: 1.6rem; margin: 20px 0;">MTG Grid Builder</h1>
 
     <div id="controls">
         <button onclick="openSettings()" style="background: #444;">Settings</button>
-        <button id="btn-download">Download</button>
-        <button id="btn-clear" style="background: var(--danger-color)">Reset</button>
+        <button id="btn-download">Download Image</button>
+        <button id="btn-clear" style="background: var(--danger-color)">Reset All</button>
     </div>
 
     <div id="grid-wrapper">
@@ -114,14 +130,14 @@
         <div class="modal-content">
             <h2 style="margin-top:0">Grid Settings</h2>
             <div class="settings-section">
-                <h3>Colors</h3>
+                <h3>Columns (Colors)</h3>
                 <div id="color-toggles" class="toggle-group"></div>
             </div>
             <div class="settings-section">
-                <h3>Card Types</h3>
+                <h3>Rows (Card Types)</h3>
                 <div id="type-toggles" class="toggle-group"></div>
             </div>
-            <button onclick="closeSettings()" style="width:100%; padding:12px;">Save & Close</button>
+            <button onclick="closeSettings()" style="width:100%; padding:14px; font-size: 16px;">Apply & Close</button>
         </div>
     </div>
 
@@ -133,14 +149,14 @@
                 <button id="btn-modal-search">Search</button>
             </div>
             <div id="search-results"></div>
-            <button onclick="closeSearch()" style="margin-top:15px; width:100%; background:#444; color:white; border:none; padding:10px; border-radius:4px;">Cancel</button>
+            <button onclick="closeSearch()" style="margin-top:15px; width:100%; background:#444; color:white; border:none; padding:12px; border-radius:4px;">Cancel</button>
         </div>
     </div>
 
     <script>
         const allColors = ['White', 'Blue', 'Black', 'Red', 'Green', 'Multi', 'Colorless'];
         const allTypes = ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land', 'Kindred', 'Battle'];
-        const colorLabels = { 'White': 'White', 'Blue': 'Blue', 'Black': 'Black', 'Red': 'Red', 'Green': 'Green', 'Multi': 'Multi', 'Colorless': 'C-less' };
+        const colorLabels = { 'White': 'White', 'Blue': 'Blue', 'Black': 'Black', 'Red': 'Red', 'Green': 'Green', 'Multi': 'Multi', 'Colorless': 'Colorless' };
 
         let activeColors = JSON.parse(localStorage.getItem('grid_colors')) || ['White', 'Blue', 'Black', 'Red', 'Green'];
         let activeTypes = JSON.parse(localStorage.getItem('grid_types')) || ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
@@ -178,15 +194,22 @@
         function render() {
             const grid = document.getElementById('grid-container');
             grid.innerHTML = '';
-            grid.style.gridTemplateColumns = `30px repeat(${activeColors.length}, 1fr)`;
-            if (activeColors.length === 0) { grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px;">Open Settings.</div>'; return; }
+            // Adjust gutter width based on screen size via CSS clamp, but column count is dynamic
+            grid.style.gridTemplateColumns = `clamp(30px, 4vw, 60px) repeat(${activeColors.length}, 1fr)`;
+            
+            if (activeColors.length === 0) { 
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; font-size:18px; color:#666;">Choose columns in Settings to begin.</div>'; 
+                return; 
+            }
+
             grid.appendChild(document.createElement('div')); 
             activeColors.forEach(c => {
                 const div = document.createElement('div');
                 div.className = 'grid-header';
-                div.textContent = colorLabels[c] || c.substring(0, 5);
+                div.textContent = colorLabels[c];
                 grid.appendChild(div);
             });
+
             activeTypes.forEach(t => {
                 const rh = document.createElement('div');
                 rh.className = 'row-header';
@@ -202,7 +225,7 @@
                         img.crossOrigin = "anonymous";
                         img.src = selections[key];
                         cell.appendChild(img);
-                    } else { cell.innerHTML = '<span style="color:#333">+</span>'; }
+                    } else { cell.innerHTML = '<span style="color:#333; font-size:24px;">+</span>'; }
                     grid.appendChild(cell);
                 });
             });
@@ -226,13 +249,9 @@
         function createCardElement(card, showArtsBtn = true) {
             const div = document.createElement('div');
             div.className = 'result-card';
-            
             const imgContainer = document.createElement('div');
             imgContainer.className = 'dfc-container';
-
-            // Check for DFC
-            const faces = card.card_faces && card.image_uris ? [card] : (card.card_faces || [card]);
-            
+            const faces = card.card_faces && !card.image_uris ? card.card_faces : [card];
             faces.forEach(face => {
                 const url = face.image_uris?.normal;
                 if (url) {
@@ -242,17 +261,14 @@
                     imgContainer.appendChild(img);
                 }
             });
-
             div.appendChild(imgContainer);
-
             if (showArtsBtn) {
                 const btnArts = document.createElement('button');
                 btnArts.className = 'btn-arts';
-                btnArts.textContent = 'Other Arts';
+                btnArts.textContent = 'Pick Different Art';
                 btnArts.onclick = (e) => { e.stopPropagation(); showAllArts(card.name); };
                 div.appendChild(btnArts);
             }
-
             return div;
         }
 
@@ -260,13 +276,12 @@
             const q = document.getElementById('search-input').value;
             if (q.length < 2) return;
             const resContainer = document.getElementById('search-results');
-            resContainer.innerHTML = 'Searching...';
+            resContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Searching...</div>';
             try {
                 const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
                 const data = await res.json();
                 resContainer.innerHTML = '';
                 if (!data.data) { resContainer.innerHTML = 'No cards found.'; return; }
-                
                 data.data.slice(0, 20).forEach(card => {
                     resContainer.appendChild(createCardElement(card, true));
                 });
@@ -277,7 +292,7 @@
             const resContainer = document.getElementById('search-results');
             document.getElementById('search-breadcrumb').style.display = 'block';
             document.getElementById('search-input-container').style.display = 'none';
-            resContainer.innerHTML = 'Loading arts...';
+            resContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Loading arts...</div>';
             try {
                 const res = await fetch(`https://api.scryfall.com/cards/search?unique=art&q=!"${encodeURIComponent(cardName)}"`);
                 const data = await res.json();
@@ -300,14 +315,18 @@
             const el = document.getElementById('grid-wrapper');
             html2canvas(el, { useCORS: true, scale: 3, backgroundColor: "#121212" }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'mtg-fav-grid.png';
+                link.download = 'mtg-favorites-grid.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
         };
 
         document.getElementById('btn-clear').onclick = () => {
-            if(confirm("Wipe all cards?")) { selections = {}; localStorage.removeItem('mtg_fav_grid'); render(); }
+            if(confirm("Wipe all cards? (Settings will be kept)")) { 
+                selections = {}; 
+                localStorage.removeItem('mtg_fav_grid'); 
+                render(); 
+            }
         };
 
         initSettings();
