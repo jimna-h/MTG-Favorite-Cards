@@ -40,11 +40,10 @@
 
         #grid-container { display: grid; gap: 4px; }
 
-        /* HEADER SCALING: Uses clamp(min, preferred, max) for fluid sizing */
         .grid-header {
             font-weight: bold; 
             text-align: center; 
-            font-size: clamp(8px, 1.5vw, 16px); /* Scales with screen width */
+            font-size: clamp(8px, 1.5vw, 16px);
             text-transform: uppercase; 
             color: #aaa;
             display: flex; align-items: center; justify-content: center;
@@ -53,14 +52,14 @@
 
         .row-header { 
             display: flex; align-items: center; justify-content: center; 
-            width: clamp(30px, 4vw, 60px); /* Gutter grows on desktop */
+            width: clamp(30px, 4vw, 60px);
         }
 
         .row-header span {
             display: block; 
             transform: rotate(-90deg); 
             white-space: nowrap;
-            font-size: clamp(7px, 1.2vw, 14px); /* Scales with screen width */
+            font-size: clamp(7px, 1.2vw, 14px);
             font-weight: bold; 
             text-transform: uppercase; 
             color: #aaa;
@@ -74,9 +73,7 @@
         }
 
         .grid-cell img { width: 100%; height: 100%; object-fit: cover; }
-        .grid-cell:hover { border-color: var(--accent-color); }
 
-        /* Modals */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.9); display: flex;
@@ -155,11 +152,14 @@
 
     <script>
         const allColors = ['White', 'Blue', 'Black', 'Red', 'Green', 'Multi', 'Colorless'];
-        const allTypes = ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land', 'Kindred', 'Battle'];
+        
+        // UPDATED: Custom order as requested
+        const allTypes = ['Creature', 'Artifact', 'Enchantment', 'Planeswalker', 'Instant', 'Sorcery', 'Land', 'Battle', 'Kindred'];
+        
         const colorLabels = { 'White': 'White', 'Blue': 'Blue', 'Black': 'Black', 'Red': 'Red', 'Green': 'Green', 'Multi': 'Multi', 'Colorless': 'Colorless' };
 
         let activeColors = JSON.parse(localStorage.getItem('grid_colors')) || ['White', 'Blue', 'Black', 'Red', 'Green'];
-        let activeTypes = JSON.parse(localStorage.getItem('grid_types')) || ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
+        let activeTypes = JSON.parse(localStorage.getItem('grid_types')) || ['Creature', 'Artifact', 'Enchantment', 'Planeswalker', 'Instant', 'Sorcery', 'Land'];
         let selections = JSON.parse(localStorage.getItem('mtg_fav_grid')) || {};
         let currentTarget = null;
 
@@ -167,6 +167,7 @@
             const colorDiv = document.getElementById('color-toggles');
             const typeDiv = document.getElementById('type-toggles');
             colorDiv.innerHTML = ''; typeDiv.innerHTML = '';
+            
             allColors.forEach(c => {
                 const label = document.createElement('label');
                 label.className = 'toggle-label';
@@ -174,6 +175,7 @@
                 label.querySelector('input').onchange = updateFilters;
                 colorDiv.appendChild(label);
             });
+
             allTypes.forEach(t => {
                 const label = document.createElement('label');
                 label.className = 'toggle-label';
@@ -184,8 +186,13 @@
         }
 
         function updateFilters() {
-            activeColors = Array.from(document.querySelectorAll('#color-toggles input:checked')).map(i => i.value);
-            activeTypes = Array.from(document.querySelectorAll('#type-toggles input:checked')).map(i => i.value);
+            // We maintain the order by filtering the 'allColors' and 'allTypes' arrays based on what is checked
+            const checkedColors = Array.from(document.querySelectorAll('#color-toggles input:checked')).map(i => i.value);
+            const checkedTypes = Array.from(document.querySelectorAll('#type-toggles input:checked')).map(i => i.value);
+            
+            activeColors = allColors.filter(c => checkedColors.includes(c));
+            activeTypes = allTypes.filter(t => checkedTypes.includes(t));
+            
             localStorage.setItem('grid_colors', JSON.stringify(activeColors));
             localStorage.setItem('grid_types', JSON.stringify(activeTypes));
             render();
@@ -194,11 +201,10 @@
         function render() {
             const grid = document.getElementById('grid-container');
             grid.innerHTML = '';
-            // Adjust gutter width based on screen size via CSS clamp, but column count is dynamic
             grid.style.gridTemplateColumns = `clamp(30px, 4vw, 60px) repeat(${activeColors.length}, 1fr)`;
             
             if (activeColors.length === 0) { 
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; font-size:18px; color:#666;">Choose columns in Settings to begin.</div>'; 
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; font-size:18px; color:#666;">Choose columns in Settings.</div>'; 
                 return; 
             }
 
@@ -265,7 +271,7 @@
             if (showArtsBtn) {
                 const btnArts = document.createElement('button');
                 btnArts.className = 'btn-arts';
-                btnArts.textContent = 'Pick Different Art';
+                btnArts.textContent = 'Arts';
                 btnArts.onclick = (e) => { e.stopPropagation(); showAllArts(card.name); };
                 div.appendChild(btnArts);
             }
@@ -276,7 +282,7 @@
             const q = document.getElementById('search-input').value;
             if (q.length < 2) return;
             const resContainer = document.getElementById('search-results');
-            resContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Searching...</div>';
+            resContainer.innerHTML = 'Searching...';
             try {
                 const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
                 const data = await res.json();
@@ -285,14 +291,14 @@
                 data.data.slice(0, 20).forEach(card => {
                     resContainer.appendChild(createCardElement(card, true));
                 });
-            } catch (e) { resContainer.innerHTML = 'Error searching.'; }
+            } catch (e) { resContainer.innerHTML = 'Error.'; }
         }
 
         async function showAllArts(cardName) {
             const resContainer = document.getElementById('search-results');
             document.getElementById('search-breadcrumb').style.display = 'block';
             document.getElementById('search-input-container').style.display = 'none';
-            resContainer.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Loading arts...</div>';
+            resContainer.innerHTML = 'Loading arts...';
             try {
                 const res = await fetch(`https://api.scryfall.com/cards/search?unique=art&q=!"${encodeURIComponent(cardName)}"`);
                 const data = await res.json();
@@ -300,7 +306,7 @@
                 data.data.forEach(card => {
                     resContainer.appendChild(createCardElement(card, false));
                 });
-            } catch (e) { resContainer.innerHTML = 'Error loading arts.'; }
+            } catch (e) { resContainer.innerHTML = 'Error.'; }
         }
 
         function selectImage(url) {
@@ -312,21 +318,23 @@
         }
 
         document.getElementById('btn-download').onclick = () => {
+            const btn = document.getElementById('btn-download');
+            btn.textContent = "Processing...";
+            btn.disabled = true;
+
             const el = document.getElementById('grid-wrapper');
-            html2canvas(el, { useCORS: true, scale: 1, backgroundColor: "#121212" }).then(canvas => {
+            html2canvas(el, { useCORS: true, scale: 2, backgroundColor: "#121212" }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'mtg-favorites-grid.png';
-                link.href = canvas.toDataURL('image/png');
+                link.download = 'mtg-favorites.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.8);
                 link.click();
+                btn.textContent = "Download Image";
+                btn.disabled = false;
             });
         };
 
         document.getElementById('btn-clear').onclick = () => {
-            if(confirm("Wipe all cards? (Settings will be kept)")) { 
-                selections = {}; 
-                localStorage.removeItem('mtg_fav_grid'); 
-                render(); 
-            }
+            if(confirm("Wipe all cards?")) { selections = {}; localStorage.removeItem('mtg_fav_grid'); render(); }
         };
 
         initSettings();
