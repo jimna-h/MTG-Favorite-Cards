@@ -227,7 +227,7 @@
                     
                     if (selections[key]) {
                         const img = document.createElement('img');
-                        // CRITICAL: Set crossOrigin BEFORE src for GitHub Pages/CORS compatibility
+                        // Set crossOrigin BEFORE src
                         img.crossOrigin = "anonymous";
                         img.src = selections[key];
                         cell.appendChild(img);
@@ -251,10 +251,8 @@
             document.getElementById('search-input').value = '';
         }
 
-        // Trigger search on button click
         document.getElementById('btn-search').onclick = performSearch;
 
-        // Trigger search on 'Enter' key
         document.getElementById('search-input').onkeydown = (e) => {
             if (e.key === 'Enter') performSearch();
         };
@@ -280,7 +278,11 @@
                             const img = document.createElement('img');
                             img.src = url;
                             img.onclick = () => {
-                                selections[currentTarget] = url;
+                                // CACHE BUSTER: This ensures the browser treats the grid image 
+                                // differently from the search result image to avoid CORS cache issues.
+                                const corsFriendlyUrl = url.includes('?') ? `${url}&cc=1` : `${url}?cc=1`;
+                                
+                                selections[currentTarget] = corsFriendlyUrl;
                                 localStorage.setItem('mtg_fav_grid', JSON.stringify(selections));
                                 render();
                                 closeSearch();
@@ -299,7 +301,6 @@
 
         document.getElementById('btn-download').onclick = () => {
             const el = document.getElementById('grid-wrapper');
-            // html2canvas needs useCORS to be true for Scryfall images
             html2canvas(el, { 
                 useCORS: true, 
                 allowTaint: false,
