@@ -24,15 +24,33 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow-x: hidden; /* Prevent any accidental peeking */
+            overflow-x: hidden;
         }
-
-        h1 { font-size: 1.2rem; margin: 10px 0; }
 
         #controls {
             display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 8px;
             margin-bottom: 10px;
+        }
+
+        #settings {
+            display: flex;
+            gap: 15px;
+            background: #222;
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            border: 1px solid #333;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
         }
 
         button {
@@ -46,26 +64,23 @@
             font-weight: bold;
         }
 
-        /* The wrapper ensures html2canvas captures everything correctly */
         #grid-wrapper {
             background-color: var(--bg-color);
             padding: 10px;
-            width: 98vw; /* Takes up almost full screen width */
-            max-width: 900px; /* Limits size on desktop */
+            width: 98vw;
+            max-width: 900px;
             box-sizing: border-box;
         }
 
         #grid-container {
             display: grid;
-            /* 1st column is 30px, others split the remaining space equally */
-            grid-template-columns: 30px repeat(7, 1fr); 
             gap: 3px;
         }
 
         .grid-header {
             font-weight: bold;
             text-align: center;
-            font-size: 8px; /* Tiny text to fit headers */
+            font-size: 8px;
             text-transform: uppercase;
             color: #aaa;
             display: flex;
@@ -84,7 +99,7 @@
             display: block;
             transform: rotate(-90deg);
             white-space: nowrap;
-            font-size: 8px;
+            font-size: 7px;
             font-weight: bold;
             text-transform: uppercase;
             color: #aaa;
@@ -94,7 +109,7 @@
             background-color: var(--cell-bg);
             border: 1px dashed var(--border-color);
             aspect-ratio: 63 / 88;
-            width: 100%; /* Fills the 1fr space */
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -109,9 +124,8 @@
             object-fit: cover;
         }
 
-        .grid-cell span { font-size: 16px; color: #333; }
+        .grid-cell span { font-size: 14px; color: #444; }
 
-        /* Modal Styles */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -129,13 +143,14 @@
             padding: 15px;
             border-radius: 8px;
             width: 90%;
+            max-width: 400px;
         }
 
         .search-row { display: flex; gap: 5px; margin-bottom: 10px; }
 
         #search-input {
             flex: 1;
-            padding: 8px;
+            padding: 10px;
             background: #111;
             color: white;
             border: 1px solid #444;
@@ -149,16 +164,25 @@
             overflow-y: auto;
         }
 
-        .result-card img { width: 100%; border-radius: 4%; }
+        .result-card img { width: 100%; border-radius: 4%; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h1>MTG Grid Builder</h1>
+    <h1 style="font-size: 1.2rem; margin: 10px 0;">MTG Grid Builder</h1>
+
+    <div id="settings">
+        <label class="toggle-label">
+            <input type="checkbox" id="toggle-extra-colors" onchange="render()"> Multi/Colorless
+        </label>
+        <label class="toggle-label">
+            <input type="checkbox" id="toggle-extra-types" onchange="render()"> Kindred/Battle
+        </label>
+    </div>
 
     <div id="controls">
-        <button id="btn-download">Download</button>
-        <button id="btn-clear" style="background: var(--danger-color)">Reset</button>
+        <button id="btn-download">Download Image</button>
+        <button id="btn-clear" style="background: var(--danger-color)">Reset All</button>
     </div>
 
     <div id="grid-wrapper">
@@ -168,17 +192,20 @@
     <div id="search-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="search-row">
-                <input type="text" id="search-input" placeholder="Card name...">
+                <input type="text" id="search-input" placeholder="Search card...">
                 <button id="btn-search">Search</button>
             </div>
             <div id="search-results"></div>
-            <button onclick="closeSearch()" style="margin-top:10px; width:100%; background:#444; border:none; color:white; padding:10px;">Cancel</button>
+            <button onclick="closeSearch()" style="margin-top:10px; width:100%; background:#444; color:white; border:none; padding:10px;">Close</button>
         </div>
     </div>
 
     <script>
-        const colors = ['White', 'Blue', 'Black', 'Red', 'Green', 'Multi', 'Colorless'];
-        const types = ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land', 'Kindred', 'Battle'];
+        const baseColors = ['White', 'Blue', 'Black', 'Red', 'Green'];
+        const extraColors = ['Multi', 'Colorless'];
+        
+        const baseTypes = ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
+        const extraTypes = ['Kindred', 'Battle'];
         
         let selections = JSON.parse(localStorage.getItem('mtg_fav_grid')) || {};
         let currentTarget = null;
@@ -187,26 +214,35 @@
             const grid = document.getElementById('grid-container');
             grid.innerHTML = '';
 
-            // Header Corner
+            // Determine active lists
+            const activeColors = [...baseColors];
+            if(document.getElementById('toggle-extra-colors').checked) activeColors.push(...extraColors);
+            
+            const activeTypes = [...baseTypes];
+            if(document.getElementById('toggle-extra-types').checked) activeTypes.push(...extraTypes);
+
+            // Update CSS Grid Columns
+            grid.style.gridTemplateColumns = `30px repeat(${activeColors.length}, 1fr)`;
+
+            // Corner
             grid.appendChild(document.createElement('div'));
 
             // Color Headers
-            colors.forEach(c => {
+            activeColors.forEach(c => {
                 const div = document.createElement('div');
                 div.className = 'grid-header';
-                // Using short versions for mobile display if needed
                 div.textContent = c.substring(0, 5); 
                 grid.appendChild(div);
             });
 
             // Rows
-            types.forEach(t => {
+            activeTypes.forEach(t => {
                 const rh = document.createElement('div');
                 rh.className = 'row-header';
                 rh.innerHTML = `<span>${t}</span>`;
                 grid.appendChild(rh);
 
-                colors.forEach(c => {
+                activeColors.forEach(c => {
                     const key = `${c}-${t}`;
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
@@ -234,6 +270,7 @@
         function closeSearch() {
             document.getElementById('search-modal').classList.add('hidden');
             document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-input').value = '';
         }
 
         document.getElementById('btn-search').onclick = performSearch;
@@ -243,11 +280,13 @@
             const q = document.getElementById('search-input').value;
             if(!q) return;
             const resContainer = document.getElementById('search-results');
-            resContainer.innerHTML = '...';
+            resContainer.innerHTML = 'Searching...';
+
             try {
                 const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
                 const data = await res.json();
                 resContainer.innerHTML = '';
+                
                 data.data?.forEach(card => {
                     const url = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
                     if(url) {
@@ -263,25 +302,29 @@
                         resContainer.appendChild(img);
                     }
                 });
-            } catch(e) { resContainer.innerHTML = 'Err'; }
+            } catch(e) { resContainer.innerHTML = 'Error'; }
         }
 
         document.getElementById('btn-download').onclick = () => {
             const el = document.getElementById('grid-wrapper');
+            // Using scale 3 for high-res download
             html2canvas(el, { useCORS: true, scale: 3, backgroundColor: "#121212" }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'mtg-favs.png';
-                link.href = canvas.toURL();
+                link.download = 'mtg-grid.png';
+                link.href = canvas.toDataURL('image/png');
                 link.click();
             });
         };
 
         document.getElementById('btn-clear').onclick = () => {
-            if(confirm("Reset?")) { selections = {}; localStorage.clear(); render(); }
+            if(confirm("Wipe all cards?")) { 
+                selections = {}; 
+                localStorage.removeItem('mtg_fav_grid'); 
+                render(); 
+            }
         };
 
         render();
     </script>
 </body>
 </html>
-
