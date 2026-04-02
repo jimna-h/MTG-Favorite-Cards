@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MTG Favorite Card Grid</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -54,6 +54,7 @@
         #grid-container {
             display: grid;
             gap: 8px;
+            align-items: center;
         }
 
         .grid-header {
@@ -65,21 +66,21 @@
             justify-content: center;
         }
 
-        /* Stable rotation for downloads */
         .row-header {
             width: 40px;
-            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .row-header span {
-            display: block;
-            transform: rotate(-90deg);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
             white-space: nowrap;
             font-size: 14px;
-            width: 0; /* Prevents container expansion */
+            line-height: 1;
+            transform: rotate(180deg);
+            display: inline-block;
         }
 
         .grid-cell {
@@ -92,19 +93,30 @@
             justify-content: center;
             border-radius: 4.75%;
             overflow: hidden;
+            position: relative;
         }
 
         .grid-cell img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
 
-        /* Search Layout Fixes */
+        .grid-cell .plus {
+            color: #333;
+            font-size: 28px;
+            line-height: 1;
+            user-select: none;
+        }
+
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.9);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -129,7 +141,7 @@
 
         #search-input {
             flex: 1;
-            min-width: 0; /* Crucial for mobile sizing */
+            min-width: 0;
             padding: 10px;
             background: #111;
             color: white;
@@ -148,11 +160,11 @@
             width: 100%;
             border-radius: 4.75%;
             cursor: pointer;
+            display: block;
         }
     </style>
 </head>
 <body>
-
     <h1>MTG Grid Builder</h1>
 
     <div id="controls">
@@ -167,7 +179,7 @@
     <div id="search-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="search-row">
-                <input type="text" id="search-input" placeholder="Card name...">
+                <input type="text" id="search-input" placeholder="Card name..." />
                 <button id="btn-search">Search</button>
             </div>
             <div id="search-results"></div>
@@ -181,15 +193,34 @@
         let selections = JSON.parse(localStorage.getItem('mtg_fav_grid')) || {};
         let currentTarget = null;
 
+        function getCardImageUrl(card) {
+            return card.image_uris?.png ||
+                   card.image_uris?.large ||
+                   card.image_uris?.normal ||
+                   card.card_faces?.[0]?.image_uris?.png ||
+                   card.card_faces?.[0]?.image_uris?.large ||
+                   card.card_faces?.[0]?.image_uris?.normal ||
+                   null;
+        }
+
+        function waitForImages(container) {
+            const imgs = [...container.querySelectorAll('img')];
+            return Promise.all(imgs.map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+            }));
+        }
+
         function render() {
             const grid = document.getElementById('grid-container');
             grid.innerHTML = '';
             grid.style.gridTemplateColumns = `40px repeat(${colors.length}, 100px)`;
 
-            // Corner
             grid.appendChild(document.createElement('div'));
 
-            // Column Headers
             colors.forEach(c => {
                 const div = document.createElement('div');
                 div.className = 'grid-header';
@@ -197,7 +228,6 @@
                 grid.appendChild(div);
             });
 
-            // Rows
             types.forEach(t => {
                 const rh = document.createElement('div');
                 rh.className = 'row-header';
@@ -209,16 +239,17 @@
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
                     cell.onclick = () => openSearch(key);
-                    
+
                     if (selections[key]) {
                         const img = document.createElement('img');
-                        // Setting crossOrigin BEFORE src is the secret for CORS success
-                        img.crossOrigin = "anonymous";
+                        img.crossOrigin = 'anonymous';
+                        img.referrerPolicy = 'no-referrer';
                         img.src = selections[key];
                         cell.appendChild(img);
                     } else {
-                        cell.innerHTML = '<span style="color:#333">+</span>';
+                        cell.innerHTML = '<span class="plus">+</span>';
                     }
+
                     grid.appendChild(cell);
                 });
             });
@@ -234,52 +265,67 @@
         }
 
         document.getElementById('btn-search').onclick = async () => {
-            const q = document.getElementById('search-input').value;
-            const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
+            const q = document.getElementById('search-input').value.trim();
+            if (!q) return;
+
+            const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`, {
+                cache: 'no-store'
+            });
             const data = await res.json();
             const results = document.getElementById('search-results');
             results.innerHTML = '';
-            
-            data.data?.forEach(card => {
-                const url = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
+
+            (data.data || []).forEach(card => {
+                const url = getCardImageUrl(card);
                 if (url) {
                     const img = document.createElement('img');
                     img.src = url;
-                    img.onclick = () => {
-                        selections[currentTarget] = url;
-                        localStorage.setItem('mtg_fav_grid', JSON.stringify(selections));
-                        render();
-                        closeSearch();
+                    img.onload = () => {
+                        const div = document.createElement('div');
+                        div.className = 'result-card';
+                        div.appendChild(img);
+                        img.onclick = () => {
+                            selections[currentTarget] = url;
+                            localStorage.setItem('mtg_fav_grid', JSON.stringify(selections));
+                            render();
+                            closeSearch();
+                        };
+                        results.appendChild(div);
                     };
-                    const div = document.createElement('div');
-                    div.className = 'result-card';
-                    div.appendChild(img);
-                    results.appendChild(div);
+                    img.onerror = () => {};
                 }
             });
         };
 
-        document.getElementById('btn-download').onclick = () => {
+        document.getElementById('btn-download').onclick = async () => {
             const el = document.getElementById('grid-wrapper');
-            html2canvas(el, { 
-                useCORS: true, 
+            await document.fonts.ready;
+            await waitForImages(el);
+
+            const canvas = await html2canvas(el, {
+                useCORS: true,
                 allowTaint: false,
                 scale: 2,
-                backgroundColor: "#121212"
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'mtg-grid.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
+                backgroundColor: '#121212',
+                scrollX: 0,
+                scrollY: 0
             });
+
+            const link = document.createElement('a');
+            link.download = 'mtg-grid.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
         };
 
         document.getElementById('btn-clear').onclick = () => {
-            if(confirm("Clear all?")) { selections = {}; localStorage.clear(); render(); }
+            if (confirm('Clear all?')) {
+                selections = {};
+                localStorage.removeItem('mtg_fav_grid');
+                render();
+            }
         };
 
         render();
     </script>
 </body>
 </html>
-
