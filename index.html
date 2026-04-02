@@ -16,7 +16,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -26,138 +26,138 @@
             align-items: center;
         }
 
-        /* Controls Section */
         #controls {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
+            justify-content: center;
+            gap: 10px;
             margin-bottom: 20px;
-            padding: 15px;
-            background-color: #1a1a1a;
-            border-radius: 8px;
             width: 100%;
             max-width: 800px;
-            box-sizing: border-box;
-        }
-
-        .button-group {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            width: 100%;
         }
 
         button {
             background-color: var(--accent-color);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 10px 15px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 1rem;
         }
 
-        /* Grid Layout */
         #grid-wrapper {
-            width: 100%;
-            max-width: 1200px;
             background-color: var(--bg-color);
             padding: 20px;
-            box-sizing: border-box;
+            display: inline-block;
         }
 
         #grid-container {
             display: grid;
             gap: 8px;
-            width: 100%; 
         }
 
         .grid-header {
             font-weight: bold;
             text-align: center;
+            font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(0.7rem, 2.5vw, 1.1rem);
         }
 
-        /* Fixed Vertical Text for Downloads */
+        /* Stable rotation for downloads */
         .row-header {
+            width: 40px;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .row-header span {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
+            display: block;
+            transform: rotate(-90deg);
             white-space: nowrap;
+            font-size: 14px;
+            width: 0; /* Prevents container expansion */
         }
 
         .grid-cell {
             background-color: var(--cell-bg);
             border: 1px dashed var(--border-color);
-            aspect-ratio: 63 / 88; 
+            aspect-ratio: 63 / 88;
+            width: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            position: relative;
+            border-radius: 4.75%;
             overflow: hidden;
-            border-radius: 4.75%; 
         }
 
         .grid-cell img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
         }
 
-        /* Modal Styles */
+        /* Search Layout Fixes */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.9);
+            background: rgba(0,0,0,0.9);
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             z-index: 1000;
         }
 
         .hidden { display: none !important; }
 
         .modal-content {
-            background-color: #222;
+            background: #222;
             padding: 20px;
             border-radius: 8px;
             width: 90%;
             max-width: 500px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
         }
 
-        #search-bar { display: flex; gap: 10px; }
-        #search-input { flex: 1; padding: 10px; border-radius: 4px; background: #111; color: white; border: 1px solid #444; }
-        #search-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; }
-        .result-card img { width: 100%; border-radius: 4.75%; cursor: pointer; }
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
 
+        #search-input {
+            flex: 1;
+            min-width: 0; /* Crucial for mobile sizing */
+            padding: 10px;
+            background: #111;
+            color: white;
+            border: 1px solid #444;
+        }
+
+        #search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-card img {
+            width: 100%;
+            border-radius: 4.75%;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
-    <h1>MTG Favorite Card Grid</h1>
+    <h1>MTG Grid Builder</h1>
 
     <div id="controls">
-        <div class="button-group">
-            <button id="btn-download">Download Image</button>
-            <button id="btn-clear" style="background-color: var(--danger-color);">Reset Grid</button>
-        </div>
+        <button id="btn-download">Download Image</button>
+        <button id="btn-clear" style="background: var(--danger-color)">Reset</button>
     </div>
 
     <div id="grid-wrapper">
@@ -166,85 +166,90 @@
 
     <div id="search-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <div id="search-bar">
+            <div class="search-row">
                 <input type="text" id="search-input" placeholder="Card name...">
                 <button id="btn-search">Search</button>
             </div>
             <div id="search-results"></div>
-            <button onclick="closeSearchModal()" style="background: #444;">Cancel</button>
+            <button onclick="closeSearch()" style="margin-top:10px; width:100%; background:#444">Close</button>
         </div>
     </div>
 
     <script>
-        const colors = [{id:'W', n:'White'}, {id:'U', n:'Blue'}, {id:'B', n:'Black'}, {id:'R', n:'Red'}, {id:'G', n:'Green'}];
+        const colors = ['White', 'Blue', 'Black', 'Red', 'Green'];
         const types = ['Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
-        let selections = JSON.parse(localStorage.getItem('mtg_grid')) || {};
-        let activeCell = null;
+        let selections = JSON.parse(localStorage.getItem('mtg_fav_grid')) || {};
+        let currentTarget = null;
 
-        function renderGrid() {
-            const container = document.getElementById('grid-container');
-            container.innerHTML = '';
-            container.style.gridTemplateColumns = `40px repeat(${colors.length}, 1fr)`;
+        function render() {
+            const grid = document.getElementById('grid-container');
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `40px repeat(${colors.length}, 100px)`;
 
-            container.appendChild(document.createElement('div'));
+            // Corner
+            grid.appendChild(document.createElement('div'));
+
+            // Column Headers
             colors.forEach(c => {
-                const h = document.createElement('div');
-                h.className = 'grid-header';
-                h.textContent = c.n;
-                container.appendChild(h);
+                const div = document.createElement('div');
+                div.className = 'grid-header';
+                div.textContent = c;
+                grid.appendChild(div);
             });
 
+            // Rows
             types.forEach(t => {
                 const rh = document.createElement('div');
-                rh.className = 'grid-header row-header';
-                const span = document.createElement('span');
-                span.textContent = t;
-                rh.appendChild(span);
-                container.appendChild(rh);
+                rh.className = 'row-header';
+                rh.innerHTML = `<span>${t}</span>`;
+                grid.appendChild(rh);
 
                 colors.forEach(c => {
-                    const key = `${c.id}-${t}`;
+                    const key = `${c}-${t}`;
                     const cell = document.createElement('div');
                     cell.className = 'grid-cell';
                     cell.onclick = () => openSearch(key);
-                    if(selections[key]) {
+                    
+                    if (selections[key]) {
                         const img = document.createElement('img');
-                        img.src = selections[key];
+                        // Setting crossOrigin BEFORE src is the secret for CORS success
                         img.crossOrigin = "anonymous";
+                        img.src = selections[key];
                         cell.appendChild(img);
                     } else {
-                        cell.innerHTML = '<span style="color:#444">+</span>';
+                        cell.innerHTML = '<span style="color:#333">+</span>';
                     }
-                    container.appendChild(cell);
+                    grid.appendChild(cell);
                 });
             });
         }
 
         function openSearch(key) {
-            activeCell = key;
+            currentTarget = key;
             document.getElementById('search-modal').classList.remove('hidden');
         }
 
-        function closeSearchModal() {
+        function closeSearch() {
             document.getElementById('search-modal').classList.add('hidden');
         }
 
         document.getElementById('btn-search').onclick = async () => {
-            const query = document.getElementById('search-input').value;
-            const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}`);
+            const q = document.getElementById('search-input').value;
+            const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
             const data = await res.json();
             const results = document.getElementById('search-results');
             results.innerHTML = '';
-            data.data.forEach(card => {
-                const imgUrl = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
-                if(imgUrl) {
+            
+            data.data?.forEach(card => {
+                const url = card.image_uris?.normal || card.card_faces?.[0].image_uris?.normal;
+                if (url) {
                     const img = document.createElement('img');
-                    img.src = imgUrl;
+                    img.src = url;
                     img.onclick = () => {
-                        selections[activeCell] = imgUrl;
-                        localStorage.setItem('mtg_grid', JSON.stringify(selections));
-                        renderGrid();
-                        closeSearchModal();
+                        selections[currentTarget] = url;
+                        localStorage.setItem('mtg_fav_grid', JSON.stringify(selections));
+                        render();
+                        closeSearch();
                     };
                     const div = document.createElement('div');
                     div.className = 'result-card';
@@ -255,20 +260,26 @@
         };
 
         document.getElementById('btn-download').onclick = () => {
-            const wrapper = document.getElementById('grid-wrapper');
-            html2canvas(wrapper, { useCORS: true, scale: 2 }).then(canvas => {
+            const el = document.getElementById('grid-wrapper');
+            html2canvas(el, { 
+                useCORS: true, 
+                allowTaint: false,
+                scale: 2,
+                backgroundColor: "#121212"
+            }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'mtg-favorites.png';
-                link.href = canvas.toDataURL();
+                link.download = 'mtg-grid.png';
+                link.href = canvas.toDataURL('image/png');
                 link.click();
             });
         };
 
         document.getElementById('btn-clear').onclick = () => {
-            if(confirm("Reset grid?")) { selections = {}; localStorage.clear(); renderGrid(); }
+            if(confirm("Clear all?")) { selections = {}; localStorage.clear(); render(); }
         };
 
-        renderGrid();
+        render();
     </script>
 </body>
 </html>
+
